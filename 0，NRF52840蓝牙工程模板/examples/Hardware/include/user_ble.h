@@ -3,6 +3,7 @@
 #include "app_timer.h"
 #include "app_util.h"
 
+
 /* 协议栈相关宏 */
 #define BLE_CONNECTION_CONFIG      1 /* 连接的配置 */
 #define BLE_EVENT_HANDLER_PRIORITY 3 /* BLE 事件处理优先级 */
@@ -21,6 +22,7 @@
 #define FIRST_CONN_PARAMS_UPDATE_DELAY APP_TIMER_TICKS(20000) /* 初始化事件(连接或开始通知)到第一次调用sd_ble_gap_conn_param_update的时间 */
 #define NEXT_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000) /* 第一次之后调用sd_ble_gap_conn_param_update之间的时间间隔(以时钟周期数为单位) */
 #define MAX_CONN_PARAMS_UPDATE_COUNT   3 /* 放弃协商前的尝试次数 */
+
 
 void ble_stack_init(void); /* BLE 协议栈初始化 */
 void gap_init(void); /* GAP 初始化 */
