@@ -11,6 +11,19 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 # Source files common to all targets
 SRC_FILES += \
   $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
+  $(SDK_ROOT)/components/ble/ble_radio_notification/ble_radio_notification.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_bps/ble_bps.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_gls/ble_gls.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_hids/ble_hids.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_hrs/ble_hrs.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_hts/ble_hts.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_ias/ble_ias.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_lbs/ble_lbs.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_lls/ble_lls.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_nus/ble_nus.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_tps/ble_tps.c \
   $(SDK_ROOT)/components/ble/common/ble_advdata.c \
   $(SDK_ROOT)/components/ble/common/ble_conn_params.c \
   $(SDK_ROOT)/components/ble/common/ble_conn_state.c \
@@ -29,18 +42,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/peer_manager/pm_buffer.c \
   $(SDK_ROOT)/components/ble/peer_manager/security_dispatcher.c \
   $(SDK_ROOT)/components/ble/peer_manager/security_manager.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_bps/ble_bps.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_gls/ble_gls.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_hids/ble_hids.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_hrs/ble_hrs.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_hts/ble_hts.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_ias/ble_ias.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_lbs/ble_lbs.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_lls/ble_lls.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_nus/ble_nus.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_tps/ble_tps.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
   $(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
@@ -109,6 +110,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_wdt.c \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
@@ -119,10 +121,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_advertising \
   $(SDK_ROOT)/components/ble/ble_dtm \
   $(SDK_ROOT)/components/ble/ble_racp \
-  $(SDK_ROOT)/components/ble/common \
-  $(SDK_ROOT)/components/ble/nrf_ble_gatt \
-  $(SDK_ROOT)/components/ble/nrf_ble_qwr \
-  $(SDK_ROOT)/components/ble/peer_manager \
+  $(SDK_ROOT)/components/ble/ble_radio_notification \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_ans_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_bas \
@@ -146,6 +145,10 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_services/ble_rscs \
   $(SDK_ROOT)/components/ble/ble_services/ble_rscs_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_tps \
+  $(SDK_ROOT)/components/ble/common \
+  $(SDK_ROOT)/components/ble/nrf_ble_gatt \
+  $(SDK_ROOT)/components/ble/nrf_ble_qwr \
+  $(SDK_ROOT)/components/ble/peer_manager \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/components/libraries/atomic \
   $(SDK_ROOT)/components/libraries/atomic_fifo \

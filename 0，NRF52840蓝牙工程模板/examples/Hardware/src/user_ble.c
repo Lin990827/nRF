@@ -13,6 +13,8 @@
 #include "nrf_sdh_ble.h"
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
+#include "ble_radio_notification.h"
+#include "app_util_platform.h"
 #include <string.h>
 #define NRF_LOG_MODULE_NAME use_ble
 #define NRF_LOG_LEVEL       4 /* 0:Off 1:Error 2:Warning 3:Info 4:Debug */
@@ -21,10 +23,12 @@
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
 
+
 NRF_BLE_GATT_DEF(ble_gatt); /* 定义一个 GATT 实例 */
 NRF_BLE_QWR_DEF(queued_write); /* 定义一个队列写实例 */
 BLE_BAS_DEF(ble_battery); /* 定义一个电池服务实例 */
 BLE_HRS_DEF(ble_heart_rate); /* 定义一个心率服务实例 */
+
 
 static uint16_t           conn_handle = BLE_CONN_HANDLE_INVALID; /* 当前连接句柄 */
 static uint8_t            adv_handle  = BLE_GAP_ADV_SET_HANDLE_NOT_SET; /* 广播句柄 */
@@ -36,33 +40,6 @@ static uint8_t adv_data[] = {0x03, BLE_GAP_AD_TYPE_APPEARANCE, 0x00, 0x00,
 							 0x10, BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, 0x4E, 0x6F, 0x72, 0x64, 0x69, 0x63, 0x5F, 0x54, 0x65, 0x6D, 0x70, 0x6C, 0x61, 0x74, 0x65}; /* 广播数据 */
 /* clang-format on */
 
-static void ble_event_handler(ble_evt_t const *p_ble_evt, void *p_context); /* BLE 事件处理 */
-static void ble_qwr_error_handler(uint32_t nrf_error); /* BLE 队列写错误处理 */
-static void ble_connect_param_event_handler(ble_conn_params_evt_t *p_evt); /* BLE 连接参数事件处理 */
-static void ble_connect_param_error_handler(uint32_t nrf_error); /* BLE 连接参数错误处理 */
-static void peer_manger_event_handler(pm_evt_t const *p_event); /* 对等管理器处理 */
-
-/**@brief BLE 协议栈初始化函数
- *
- * @param[in]  None
- *
- * @retval     None
- *
- * @note None
- * @attention None
- */
-void ble_stack_init(void)
-{
-    uint32_t ram_start = 0; /* 协议栈 RAM 起始地址 */
-
-    APP_ERROR_CHECK(nrf_sdh_enable_request()); /* BLE 协议栈回复使能应答，主要是配置协议栈时钟 */
-    APP_ERROR_CHECK(nrf_sdh_ble_default_cfg_set(BLE_CONNECTION_CONFIG, &ram_start)); /* 获取 BLE 协议栈起始地址，默认连接配置 */
-    APP_ERROR_CHECK(nrf_sdh_ble_enable(&ram_start)); /* 使能 BLE 协议栈 */
-
-    NRF_SDH_BLE_OBSERVER(m_ble_observer, BLE_EVENT_HANDLER_PRIORITY, ble_event_handler, NULL); /* 注册 BLE 观察者事件处理 */
-
-    NRF_LOG_INFO("BLE stack initialization end.");
-}
 
 /**@brief BLE 事件处理函数
  *
@@ -81,6 +58,7 @@ static void ble_event_handler(ble_evt_t const *p_ble_evt, void *p_context)
         case BLE_GAP_EVT_CONNECTED: /* 连接 */
             conn_handle = p_ble_evt->evt.gap_evt.conn_handle; /* 保存 GAP 连接句柄 */
             APP_ERROR_CHECK(nrf_ble_qwr_conn_handle_assign(&queued_write, conn_handle)); /* 将连接句柄分配给队列写 */
+            // ble_adv_config.mode = BLE_ADV_NONE_MODE;
             led_close(LED2);
             led_open(LED3);
             NRF_LOG_INFO("Connected to peer.");
@@ -106,6 +84,10 @@ static void ble_event_handler(ble_evt_t const *p_ble_evt, void *p_context)
             APP_ERROR_CHECK(sd_ble_gap_sec_params_reply(conn_handle, BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP, NULL, NULL)); /* 回复 GAP 安全参数 */
             NRF_LOG_INFO("Request to provide security parameters.");
             break;
+        case BLE_GAP_EVT_ADV_SET_TERMINATED:   /* 广播终止 */
+            // if (p_ble_evt->evt.gap_evt.params.adv_set_terminated.reason == BLE_GAP_EVT_ADV_SET_TERMINATED_REASON_TIMEOUT)   /* 广播终止原因：已达到超时值 */
+            //     ble_adv_config.mode = BLE_ADV_NONE_MODE;
+            break;
         case BLE_GATTS_EVT_SYS_ATTR_MISSING: /* 等待持久的系统属性访问*/
             APP_ERROR_CHECK(sd_ble_gatts_sys_attr_set(conn_handle, NULL, 0, 0)); /* 更新持续的系统属性信息 */
             NRF_LOG_INFO("A persistent system attribute access is pending.");
@@ -122,7 +104,108 @@ static void ble_event_handler(ble_evt_t const *p_ble_evt, void *p_context)
             NRF_LOG_INFO("BLE EVENT ID:%d", p_ble_evt->header.evt_id);
             break;
     }
+    /* 通知到外层注册的应用回调 */
 }
+
+
+/**@brief BLE 队列写错误处理函数
+ *
+ * @param[in]  nrf_error - 错误代码
+ *
+ * @retval     None
+ *
+ * @note None
+ * @attention None
+ */
+static void ble_qwr_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
+
+/**@brief 对等管理器处理函数
+ *
+ * @param[in]  p_event - 对等管理器事件指针
+ *
+ * @retval     None
+ *
+ * @note None
+ * @attention None
+ */
+static void peer_manger_event_handler(pm_evt_t const *p_event)
+{
+    pm_handler_on_pm_evt(p_event); /* 对等管理器调用 */
+    pm_handler_disconnect_on_sec_failure(p_event); /* 对等管理器断开 */
+    pm_handler_flash_clean(p_event); /* 对等管理器维护功能 */
+    switch (p_event->evt_id) {
+        case PM_EVT_PEERS_DELETE_SUCCEEDED: /* 调用完成 */
+            start_advertis();
+            break;
+        default:
+            break;
+    }
+}
+
+
+/**@brief BLE 连接参数事件处理函数
+ *
+ * @param[in]  *p_evt - 连接参数事件指针
+ *
+ * @retval     None
+ *
+ * @note None
+ * @attention None
+ */
+static void ble_connect_param_event_handler(ble_conn_params_evt_t *p_evt)
+{
+    /* 判断事件类型 */
+    switch (p_evt->evt_type) {
+        case BLE_CONN_PARAMS_EVT_FAILED: /* 协商失败 */
+            APP_ERROR_CHECK(sd_ble_gap_disconnect(conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION)); /* 断开连接 */
+            break;
+        case BLE_CONN_PARAMS_EVT_SUCCEEDED: /* 协商成功 */
+            break;
+    }
+}
+
+
+/**@brief BLE 连接参数错误处理函数
+ *
+ * @param[in]  nrf_error - 错误代码
+ *
+ * @retval     None
+ *
+ * @note None
+ * @attention None
+ */
+static void ble_connect_param_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
+
+/**@brief BLE 协议栈初始化函数
+ *
+ * @param[in]  None
+ *
+ * @retval     None
+ *
+ * @note None
+ * @attention None
+ */
+void ble_stack_init(void)
+{
+    uint32_t ram_start = 0; /* 协议栈 RAM 起始地址 */
+
+    APP_ERROR_CHECK(nrf_sdh_enable_request()); /* BLE 协议栈回复使能应答，主要是配置协议栈时钟 */
+    APP_ERROR_CHECK(nrf_sdh_ble_default_cfg_set(BLE_CONNECTION_CONFIG, &ram_start)); /* 获取 BLE 协议栈起始地址，默认连接配置 */
+    APP_ERROR_CHECK(nrf_sdh_ble_enable(&ram_start)); /* 使能 BLE 协议栈 */
+
+    NRF_SDH_BLE_OBSERVER(m_ble_observer, BLE_EVENT_HANDLER_PRIORITY, ble_event_handler, NULL); /* 注册 BLE 观察者事件处理 */
+
+    NRF_LOG_INFO("BLE stack initialization end.");
+}
+
 
 /**@brief GAP（通用访问配置文件）初始化函数
  *
@@ -153,6 +236,7 @@ void gap_init(void)
     NRF_LOG_INFO("GAP initialization end.");
 }
 
+
 /**@brief GATT（通用属性配置文件）初始化函数
  *
  * @param[in]  None
@@ -168,6 +252,7 @@ void gatt_init(void)
 
     NRF_LOG_INFO("GATT initialization end.");
 }
+
 
 /**@brief 广播初始化函数
  *
@@ -222,6 +307,7 @@ void advertis_init(void)
     NRF_LOG_INFO("Advertis initialization end.");
 }
 
+
 /**@brief 服务初始化函数
  *
  * @param[in]  None
@@ -242,19 +328,6 @@ void service_init(void)
     NRF_LOG_INFO("Service initialization end.");
 }
 
-/**@brief BLE 队列写错误处理函数
- *
- * @param[in]  nrf_error - 错误代码
- *
- * @retval     None
- *
- * @note None
- * @attention None
- */
-static void ble_qwr_error_handler(uint32_t nrf_error)
-{
-    APP_ERROR_HANDLER(nrf_error);
-}
 
 /**@brief 连接参数初始化函数
  *
@@ -282,40 +355,6 @@ void connect_param_init(void)
     APP_ERROR_CHECK(ble_conn_params_init(&connect_params));
 }
 
-/**@brief BLE 连接参数事件处理函数
- *
- * @param[in]  *p_evt - 连接参数事件指针
- *
- * @retval     None
- *
- * @note None
- * @attention None
- */
-static void ble_connect_param_event_handler(ble_conn_params_evt_t *p_evt)
-{
-    /* 判断事件类型 */
-    switch (p_evt->evt_type) {
-        case BLE_CONN_PARAMS_EVT_FAILED: /* 协商失败 */
-            APP_ERROR_CHECK(sd_ble_gap_disconnect(conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION)); /* 断开连接 */
-            break;
-        case BLE_CONN_PARAMS_EVT_SUCCEEDED: /* 协商成功 */
-            break;
-    }
-}
-
-/**@brief BLE 连接参数错误处理函数
- *
- * @param[in]  nrf_error - 错误代码
- *
- * @retval     None
- *
- * @note None
- * @attention None
- */
-static void ble_connect_param_error_handler(uint32_t nrf_error)
-{
-    APP_ERROR_HANDLER(nrf_error);
-}
 
 /**@brief 对等管理器初始化函数
  *
@@ -349,28 +388,6 @@ void peer_manager_init(void)
     APP_ERROR_CHECK(pm_register(peer_manger_event_handler)); /* 注册对等管理器处理函数 */
 }
 
-/**@brief 对等管理器处理函数
- *
- * @param[in]  p_event - 对等管理器事件指针
- *
- * @retval     None
- *
- * @note None
- * @attention None
- */
-static void peer_manger_event_handler(pm_evt_t const *p_event)
-{
-    pm_handler_on_pm_evt(p_event); /* 对等管理器调用 */
-    pm_handler_disconnect_on_sec_failure(p_event); /* 对等管理器断开 */
-    pm_handler_flash_clean(p_event); /* 对等管理器维护功能 */
-    switch (p_event->evt_id) {
-        case PM_EVT_PEERS_DELETE_SUCCEEDED: /* 调用完成 */
-            start_advertis();
-            break;
-        default:
-            break;
-    }
-}
 
 /**@brief 开启广播函数
  *
@@ -385,6 +402,7 @@ void start_advertis(void)
 {
     APP_ERROR_CHECK(sd_ble_gap_adv_start(adv_handle, BLE_CONNECTION_CONFIG)); /* 开启广播（GAP 可发现、可连接模式、广播过程） */
 }
+
 
 /**@brief 停止广播函数
  *

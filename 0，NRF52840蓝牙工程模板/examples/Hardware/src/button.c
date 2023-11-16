@@ -21,12 +21,13 @@ NRF_LOG_MODULE_REGISTER();
 
 APP_TIMER_DEF(button_polling); /* 按键轮询定时器 */
 
+
 static uint8_t                   button_num    = 0; /* 按键数量 */
 static uint8_t                   button_cb_num = 0; /* 按键回调函数数量 */
 static uint32_t                  time_out      = 0; /* 软件定时器超时次数 */
 static app_button_cfg_t *        configuration = NULL; /* 按键配置结构体指针（nordic SDK 库自带） */
 static button_control_t *        control       = NULL; /* 按键控制结构体指针 */
-static button_callback_handler_t button_callback_handler[BUTTON_MAX_NUM]; /* 按键回调函数（用于上层应用处理） */
+static button_callback_handler_t button_callback_handler[BUTTON_MAX_EVENT_NUM]; /* 按键回调函数（用于上层应用处理） */
 
 
 /**@brief 按键获取触发标志函数
@@ -228,9 +229,9 @@ static void button_polling_handler(void *p_context)
  */
 bool button_init(button_cfg_t *cfg, uint8_t num, uint16_t time)
 {
-    if (cfg == NULL || num < 1) /* 按键配置结构体指针为空，或者按键数小于 1 */
+    if (cfg == NULL || num < 1 || num > BUTTON_MAX_NUM) /* 按键配置结构体指针为空，或者按键数小于 1，或者按键数大于最大按键数 */
     {
-        NRF_LOG_ERROR("The button configuration structure pointer is empty, or the number of keys is less than 1 !!!");
+        NRF_LOG_ERROR("The button configuration struct pointer is empty, or the number of buttons is less than 1, or the number of buttons is greater than the maximum number of buttons!!!");
         return false;
     }
 
@@ -282,7 +283,7 @@ bool button_register_callback(button_callback_handler_t function)
         NRF_LOG_ERROR("The registered keystroke callback function is empty!!!");
         return false;
     }
-    if (button_cb_num < BUTTON_MAX_NUM) /* 注册的按键回调函数不超过按键数 */
+    if (button_cb_num < BUTTON_MAX_EVENT_NUM) /* 注册的按键回调函数不超过按键数 */
     {
         button_callback_handler[button_cb_num++] = function; /* 按键回调函数赋值 */
         return true;

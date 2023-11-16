@@ -1,5 +1,6 @@
 #include "led.h"
 
+
 /**@brief LED初始化函数
  *
  * @param[in]  None
@@ -22,6 +23,7 @@ void led_init(void)
     led_close(LED4); /* 关闭LED4 */
 }
 
+
 /**@brief LED 打开函数
  *
  * @param[in]  pin_number - LED端口和引脚号
@@ -36,6 +38,7 @@ void led_open(uint32_t pin_number)
     nrf_gpio_pin_clear(pin_number); /* IO端口和引脚号输出低电平 */
 }
 
+
 /**@brief LED 关闭函数
  *
  * @param[in]  pin_number - LED端口和引脚号
@@ -49,6 +52,7 @@ void led_close(uint32_t pin_number)
 {
     nrf_gpio_pin_set(pin_number); /* IO端口和引脚号输出高电平 */
 }
+
 
 /**@brief LED 翻转函数
  *

@@ -7,6 +7,8 @@
 
 #define BUTTON_MAX_NUM 4 /* 按键最大数量 */
 
+#define BUTTON_MAX_EVENT_NUM 4 /* 按键最大事件数量 */
+
 /* 按键引脚定义 */
 #define BUTTON1 11 /* 按键 1 */
 #define BUTTON2 12 /* 按键 2 */

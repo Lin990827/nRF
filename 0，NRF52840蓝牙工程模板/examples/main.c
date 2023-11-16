@@ -26,6 +26,7 @@
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_sdh_soc.h"
+#include "nrf_drv_wdt.h"
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
 #include "sensorsim.h"
@@ -42,6 +43,23 @@ NRF_LOG_MODULE_REGISTER();
 
 
 APP_TIMER_DEF(sys_timer); /* 创建系统定时器ID */
+
+static nrf_drv_wdt_channel_id wdt_channel;  /* 看门狗通道 ID */
+
+
+/**@brief 看门狗事件处理函数
+ *
+ * @param[in]  None
+ * @param[out] None
+ *
+ * @retval     None
+ *
+ * @note None
+ * @attention 如果进入此函数还会用有部分时间进行处理，最后会复位
+ */
+static void wdt_event_handler(void)
+{
+}
 
 
 /**@brief 基本模块初始化函数
@@ -64,9 +82,21 @@ static void basic_module_init(void)
 
     APP_ERROR_CHECK(app_timer_init()); /* 软件定时器初始化（里面会初始化时钟模块） */
 
+    /* 设置所有 GPIO 为输出 0 状态 */
+    for (uint8_t i = 0; i < 48; i++) {
+        nrf_gpio_cfg_output(i);
+        nrf_gpio_pin_clear(i);
+    }
+
     APP_SCHED_INIT(SCHEDULE_EVENT_MAX_SIZE, SCHEDULE_QUEUE_MAX_SIZE); /* 调度器初始化 */
 
     APP_ERROR_CHECK(nrf_pwr_mgmt_init()); /* 电源管理初始化 */
+
+    /* 看门狗初始化 */
+    nrf_drv_wdt_config_t wdt_config = NRF_DRV_WDT_DEAFULT_CONFIG;
+
+    APP_ERROR_CHECK(nrf_drv_wdt_init(&wdt_config, wdt_event_handler));
+    APP_ERROR_CHECK(nrf_drv_wdt_channel_alloc(&wdt_channel));
 
     NRF_LOG_DEBUG("Exit %s .", __func__);
 }
@@ -167,10 +197,8 @@ int main(void)
         { BUTTON3, APP_BUTTON_ACTIVE_LOW, NRF_GPIO_PIN_PULLUP },
         { BUTTON4, APP_BUTTON_ACTIVE_LOW, NRF_GPIO_PIN_PULLUP },
     }; /* 按键配置 */
-    if (button_init(button, sizeof(button) / sizeof(button_cfg_t), 50) == true) /* 按键初始化成功 */
-    {
+    if (button_init(button, sizeof(button) / sizeof(button_cfg_t), 50)) /* 按键初始化 */
         NRF_LOG_DEBUG("Button initialize successful.");
-    }
 
     APP_ERROR_CHECK(app_timer_create(&sys_timer, APP_TIMER_MODE_REPEATED, sys_timer_timeout_handler)); /* 创建系统定时器 */
     APP_ERROR_CHECK(app_timer_start(sys_timer, APP_TIMER_TICKS(1), NULL)); /* 开启系统定时器，1ms */
