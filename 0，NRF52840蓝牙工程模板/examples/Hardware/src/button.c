@@ -21,6 +21,7 @@ NRF_LOG_MODULE_REGISTER();
 
 APP_TIMER_DEF(button_polling); /* 按键轮询定时器 */
 
+
 static uint8_t                   button_num    = 0; /* 按键数量 */
 static uint8_t                   button_cb_num = 0; /* 按键回调函数数量 */
 static uint32_t                  time_out      = 0; /* 软件定时器超时次数 */
